@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c556d9eee0d15194592f5f5c96de3d8c, type: 3}
-  m_Name: Rabidaga
+  m_Name: Pelai
   m_EditorClassIdentifier: 
-  name: Rabidaga
-  type: City
-  descripting: Like an iceberg in the sea, Rabidaga towers on the coast as one of
-    the greatest cities in the south.
-  position: {x: 130.3, y: -396.3}
+  name: Pelai
+  type: Citys
+  descripting: Between high towering mountains, lays Pelai, a small city of elves
+    and dwarfs.
+  position: {x: -3.1, y: -51.2}
   customMarkerSprite: {fileID: 0}
   subMap: {fileID: 0}

@@ -15,15 +15,21 @@ namespace JB.WorldMap
 
         private Vector2 lastMousePosition;
 
+        // Zoom
         private Vector2 zoomOrigin = new Vector2();
         private float previousZoom = 1;
         private float currentZoom = 1;
         private float targetZoom = 1;
         private float zoomTimer = 0;
 
+        private Transform currentLocationInfoTarget;
+
         void Start()
         {
+            CheckSettings();
             Initialize();
+            if (settings.startingMap)
+                SetMap(settings.startingMap);
         }
 
         /// <summary>
@@ -31,14 +37,21 @@ namespace JB.WorldMap
         /// </summary>
         private void Initialize()
         {
-            CheckSettings();
+            // Add Trigger for dragging
+            UnityEngine.EventSystems.EventTrigger.Entry entry = new UnityEngine.EventSystems.EventTrigger.Entry();
+            entry.eventID = UnityEngine.EventSystems.EventTriggerType.Drag;
+            entry.callback.AddListener((data) => { OnDrag(); });
+            references.mapParent.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>().triggers.Add(entry);
 
-            if (settings.startingMap)
-                SetMap(settings.startingMap);
+            // Create Map Background
+            references.mapBackground = new GameObject("Map Background").AddComponent<Image>();
+            references.mapBackground.gameObject.transform.parent = references.mapParent;
+            references.mapBackground.gameObject.transform.localPosition = Vector2.zero;
 
-            
-
-
+            // Create Location Marker parent
+            references.locationMarkerParent = new GameObject("Location Markers").transform;
+            references.locationMarkerParent.parent = references.mapParent;
+            references.locationMarkerParent.localPosition = Vector2.zero;
         }
 
         /// <summary>
@@ -51,34 +64,25 @@ namespace JB.WorldMap
                 Debug.LogError("'mapParent' must be defined in references!");
                 return;
             }
-
-            // Add Trigger for dragging
-            UnityEngine.EventSystems.EventTrigger.Entry entry = new UnityEngine.EventSystems.EventTrigger.Entry();
-            entry.eventID = UnityEngine.EventSystems.EventTriggerType.Drag;
-            entry.callback.AddListener((data) => { OnDrag(); });
-            references.mapParent.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>().triggers.Add(entry);
-
-            references.mapBackground = new GameObject("Map Background").AddComponent<Image>();
-            references.mapBackground.gameObject.transform.parent = references.mapParent;
-            references.mapBackground.gameObject.transform.localPosition = Vector2.zero;
-
-            references.locationMarkerParent = new GameObject("Location Markers").transform;
-            references.locationMarkerParent.parent = references.mapParent;
-            references.locationMarkerParent.localPosition = Vector2.zero;
         }
 
         void Update()
         {
-            lastMousePosition = Input.mousePosition;
             NavigationUpdate();
         }
 
         void NavigationUpdate()
         {
-            if(settings.navigation.allowZoom)
+            lastMousePosition = Input.mousePosition;
+
+            if (settings.navigation.allowZoom)
                 GetZoomInput();
 
             UpdateZoom();
+
+            // Move Location Info Pannel
+            if(currentLocationInfoTarget)
+                references.locationInfo.pannel.transform.position = currentLocationInfoTarget.position;
         }
 
         /// <summary>
@@ -153,7 +157,7 @@ namespace JB.WorldMap
 
             foreach (Location location in currentMap.locations)
             {
-                GameObject marker = new GameObject(location.name);
+                GameObject marker = new GameObject("Location: " + location.name);
                 marker.transform.parent = references.locationMarkerParent;
                 marker.transform.localPosition = location.position;
                 marker.transform.localScale = new Vector3(settings.markerScale, settings.markerScale, 1);
@@ -163,7 +167,13 @@ namespace JB.WorldMap
                     marker.GetComponent<Image>().sprite = location.customMarkerSprite;
                 else
                     marker.GetComponent<Image>().sprite = settings.mapMarkerSprite;
-                
+
+
+                // Add Hover Trigger
+                UnityEngine.EventSystems.EventTrigger.Entry entry = new UnityEngine.EventSystems.EventTrigger.Entry();
+                entry.eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter;
+                entry.callback.AddListener((data) => { ShowLocationInfo(location); });
+                marker.AddComponent<UnityEngine.EventSystems.EventTrigger>().triggers.Add(entry);
             }
         }
 
@@ -179,9 +189,41 @@ namespace JB.WorldMap
             }
         }
 
+        private void ShowLocationInfo(Location location)
+        {
+            if(settings.locationInfoIsPopup)
+            {
+                references.locationInfo.pannel.SetActive(true);
+                currentLocationInfoTarget = GameObject.Find("Location: " + location.name).transform;
+            }
+            // Set Info fields
+            if (references.locationInfo.name)
+                references.locationInfo.name.GetComponent<Text>().text = location.name;
+            if (references.locationInfo.description)
+                references.locationInfo.description.GetComponent<Text>().text = location.descripting;
+        }
+
+        public void HideLocationInfo()
+        {
+            if (!settings.locationInfoIsPopup)
+                return;
+            references.locationInfo.pannel.SetActive(false);
+            currentLocationInfoTarget = null;
+        }
+
         [System.Serializable]
         public class WorldMapHandlerSettings
         {
+            [Header("Mode")]
+            public bool EnableTraveling = true;
+            public enum MapModess
+            {
+                OpenWorld,
+                Network,
+                Free
+            }
+            public MapModess mode;
+
             [Header("Start")]
             public bool openOnStart = true;
             public Map startingMap;
@@ -194,6 +236,7 @@ namespace JB.WorldMap
             [Header("Graphics")]
             public Sprite mapMarkerSprite;
             public float markerScale = 0.3f;
+            public bool locationInfoIsPopup = true;
 
             [System.Serializable]
             public class NavigationSettings
@@ -214,7 +257,7 @@ namespace JB.WorldMap
         [System.Serializable]
         public class WorldMapPrefabs
         {
-            public GameObject locationInfoPannel;
+
         }
 
         [System.Serializable]
@@ -225,7 +268,15 @@ namespace JB.WorldMap
             [Tooltip("Parent of map content. Is moved/scaled for map navigation.")]
             public Transform mapParent;
 
-
+            [Tooltip("Pannel showing Location information.")]
+            public LocationInfo locationInfo;
+            [System.Serializable]
+            public class LocationInfo
+            {
+                public GameObject pannel;
+                public GameObject name;
+                public GameObject description;
+            }
 
             // Hidden:
 

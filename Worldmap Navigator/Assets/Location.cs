@@ -10,6 +10,8 @@ namespace JB.WorldMap
         [Header("Information")]
         public new string name;
         public string type;
+        [Space(5)]
+        public string descripting;
 
         [Space(10)]
         public Vector2 position;
