@@ -11,6 +11,9 @@ namespace JB.WorldMap
         public WorldMapPrefabs prefabs;
         public WorldMapReferences references;
 
+        [Space(10)]
+        public WorldMapPlayerController player;
+
         private Map currentMap;
 
         private Vector2 lastMousePosition;
@@ -201,6 +204,9 @@ namespace JB.WorldMap
                 references.locationInfo.name.GetComponent<Text>().text = location.name;
             if (references.locationInfo.description)
                 references.locationInfo.description.GetComponent<Text>().text = location.descripting;
+
+            references.locationInfo.travelButton.onClick.RemoveAllListeners();
+            references.locationInfo.travelButton.onClick.AddListener(delegate { Travel(location); });
         }
 
         public void HideLocationInfo()
@@ -211,18 +217,40 @@ namespace JB.WorldMap
             currentLocationInfoTarget = null;
         }
 
+        /// <summary> 
+        /// Travel to the given location based on the selected travel mode.
+        /// </summary>
+        private void Travel(Location location)
+        {
+            if (!player)
+                throw new System.Exception("Player not defined! Can't use travel.");
+
+            if(settings.mode == WorldMapHandlerSettings.MapModes.OpenWorld)
+            {
+                player.currentLocation = location;
+                player.Teleport(location);
+            } else if (settings.mode == WorldMapHandlerSettings.MapModes.Network)
+            {
+                player.StartTravel(location);
+            } else if (settings.mode == WorldMapHandlerSettings.MapModes.Free)
+            {
+                player.currentLocation = location;
+                player.events.OnLocationArive.Invoke();
+            } 
+        }
+
         [System.Serializable]
         public class WorldMapHandlerSettings
         {
             [Header("Mode")]
             public bool EnableTraveling = true;
-            public enum MapModess
+            public enum MapModes
             {
                 OpenWorld,
                 Network,
                 Free
             }
-            public MapModess mode;
+            public MapModes mode;
 
             [Header("Start")]
             public bool openOnStart = true;
@@ -276,10 +304,11 @@ namespace JB.WorldMap
                 public GameObject pannel;
                 public GameObject name;
                 public GameObject description;
+
+                public Button travelButton;
             }
 
             // Hidden:
-
             [HideInInspector()]
             public Image mapBackground;
             [HideInInspector()]

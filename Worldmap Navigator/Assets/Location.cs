@@ -20,6 +20,7 @@ namespace JB.WorldMap
         public Sprite customMarkerSprite;
 
         [Header("Advanced")]
+        [Tooltip("Map of this location, for further navigation.")]
         public Map subMap;
     }
 }
